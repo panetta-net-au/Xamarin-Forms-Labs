@@ -126,38 +126,23 @@ namespace XLabs.Forms.Controls
 
         private void OnSelectedIndexChanged(object sender,EventArgs e)
         {
-            this.SelectedItem = ItemsSource [SelectedIndex];
+            if (SelectedIndex >= 0)
+            {
+                this.SelectedItem = GetKey(this, ItemsSource[SelectedIndex]);
+            }
         }
 
 
         private static void OnSelectedItemChanged(BindableObject bindable, object oldValue, object newValue)
         {
             ExtendedPicker bindablePicker = (ExtendedPicker) bindable;
-            ExtendedPicker picker = bindable as ExtendedPicker;
-            if (picker != null)
-            {
-                var selectedItem = picker.ItemsSource[picker.SelectedIndex];
-                if (!string.IsNullOrWhiteSpace(picker.KeyMemberPath))
-                {
-                    var keyProperty = selectedItem.GetType().GetRuntimeProperty(picker.KeyMemberPath);
-                    if (keyProperty == null)
-                    {
-                        throw new InvalidOperationException(String.Concat(picker.KeyMemberPath, " is not a property of ",
-                            selectedItem.GetType().FullName));
-                    }
-                    picker.SelectedItem = keyProperty.GetValue(selectedItem);
-                }
-                else
-                {
-                    picker.SelectedItem = selectedItem.ToString();
-                }
-            }
+
             if (bindablePicker.ItemsSource != null && bindablePicker.SelectedItem != null)
             {
                 int count = 0;
                 foreach (object obj in bindablePicker.ItemsSource)
                 {
-                    if (obj == bindablePicker.SelectedItem)
+                    if (GetKey(bindablePicker, obj) == bindablePicker.SelectedItem)
                     {
                         bindablePicker.SelectedIndex = count;
                         break;
@@ -172,7 +157,7 @@ namespace XLabs.Forms.Controls
 
             ExtendedPicker bindablePicker = (ExtendedPicker)bindable;
             bindablePicker.DisplayProperty = (string)newValue;
-            loadItemsAndSetSelected (bindable);
+            LoadItemsAndSetSelected (bindable);
 
         }
 
@@ -186,9 +171,10 @@ namespace XLabs.Forms.Controls
         {
             ExtendedPicker bindablePicker = (ExtendedPicker)bindable;
             bindablePicker.ItemsSource = (IList)newValue;
-            loadItemsAndSetSelected (bindable);
+            LoadItemsAndSetSelected (bindable);
         }
-        static void loadItemsAndSetSelected (BindableObject bindable)
+
+        private static void LoadItemsAndSetSelected(BindableObject bindable)
         {
             ExtendedPicker bindablePicker = (ExtendedPicker)bindable;
             if (bindablePicker.ItemsSource as IEnumerable != null) {
@@ -216,6 +202,22 @@ namespace XLabs.Forms.Controls
                     count++;
                 }
             }
+        }
+
+        private static object GetKey(ExtendedPicker picker, object selectedItem)
+        {
+            if (string.IsNullOrWhiteSpace(picker.KeyMemberPath))
+            {
+                return selectedItem;
+            }
+
+            var keyProperty = selectedItem.GetType().GetRuntimeProperty(picker.KeyMemberPath);
+            if (keyProperty == null)
+            {
+                throw new InvalidOperationException(String.Concat(picker.KeyMemberPath, " is not a property of ",
+                    selectedItem.GetType().FullName));
+            }
+            return keyProperty.GetValue(selectedItem);
         }
     }
 
